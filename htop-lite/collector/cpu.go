@@ -1,0 +1,155 @@
+// Package collector provides goroutine-based system metric samplers.
+// Each collector runs independently on a ticker, reads raw data from
+// the OS (via /proc or gopsutil), and sends typed snapshots on a channel.
+package collector
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+)
+
+// RunCPU is the entry point for the CPU collector goroutine.
+// It samples CPU usage on every tick and sends a CPUSnapshot on out.
+//
+// Blocking behaviour:
+//   - If the receiver (state manager) is not ready, the send is dropped
+//     because out is buffered with size 1. This means we always publish
+//     the *latest* reading rather than queuing up stale ones.
+//   - The goroutine exits cleanly when ctx is cancelled.
+//
+// Usage:
+//
+//	cpuCh := make(chan collector.CPUSnapshot, 1)
+//	go collector.RunCPU(ctx, cpuCh, time.Second)
+// RunCPU accepts a bidirectional chan so that sendOrDrop can drain stale
+// values from the buffer. The caller should declare the channel as
+// chan CPUSnapshot and pass it here; the state manager receives it via
+// its cpuCh parameter which is narrowed to <-chan CPUSnapshot.
+func RunCPU(ctx context.Context, out chan CPUSnapshot, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	log.Println("cpuCollector: started")
+
+	// Collect once immediately so the UI has data on first render,
+	// rather than showing zeros for the first `interval` duration.
+	if snap, err := sample(); err != nil {
+		log.Printf("cpuCollector: initial sample error: %v", err)
+	} else {
+		sendOrDrop(out, snap)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("cpuCollector: context cancelled, exiting")
+			return
+
+		case <-ticker.C:
+			snap, err := sample()
+			if err != nil {
+				// Log the error but keep running — a single failed read
+				// shouldn't take down the whole program.
+				log.Printf("cpuCollector: sample error: %v", err)
+				continue
+			}
+			sendOrDrop(out, snap)
+		}
+	}
+}
+
+// sample reads the current CPU utilization from the OS and returns a
+// CPUSnapshot. It calls gopsutil twice internally — once for overall
+// usage and once for per-core breakdown.
+//
+// gopsutil computes usage as a delta between two reads separated by a
+// short internal interval (100ms). This means sample() blocks for
+// roughly 100ms on each call, which is fine since it runs in its own
+// goroutine.
+func sample() (CPUSnapshot, error) {
+	const measureInterval = 100 * time.Millisecond
+
+	// Overall utilization across all cores (returns a slice of length 1
+	// when percpu=false).
+	totals, err := cpu.Percent(measureInterval, false)
+	if err != nil {
+		return CPUSnapshot{}, err
+	}
+
+	// Per-core utilization (returns a slice of length == CoreCount).
+	// We pass 0 as the interval here because the first call already
+	// waited; gopsutil will use cached counters from that read.
+	cores, err := cpu.Percent(0, true)
+	if err != nil {
+		return CPUSnapshot{}, err
+	}
+
+	coreCount, err := cpu.Counts(true) // true = logical cores
+	if err != nil {
+		// Non-fatal — we still have the usage data.
+		log.Printf("cpuCollector: could not get core count: %v", err)
+		coreCount = len(cores)
+	}
+
+	var overall float64
+	if len(totals) > 0 {
+		overall = clamp(totals[0], 0, 100)
+	}
+
+	clamped := make([]float64, len(cores))
+	for i, c := range cores {
+		clamped[i] = clamp(c, 0, 100)
+	}
+
+	return CPUSnapshot{
+		UsagePercent: overall,
+		CoreUsage:    clamped,
+		CoreCount:    coreCount,
+		Timestamp:    time.Now(),
+	}, nil
+}
+
+// sendOrDrop attempts a non-blocking send on out.
+// If the channel already has an unread value (the receiver is busy),
+// the old value is drained first and the new snapshot takes its place.
+// This ensures the state manager always sees the freshest data.
+//
+// out must be a bidirectional channel (chan CPUSnapshot) even though we
+// only ever send on it — the drain step needs receive permission. The
+// call sites in RunCPU pass the channel before it is narrowed to chan<-,
+// so no API change is needed there.
+func sendOrDrop(out chan CPUSnapshot, snap CPUSnapshot) {
+	select {
+	case out <- snap:
+		// Sent successfully.
+	default:
+		// Channel full — drain the stale value, then send the new one.
+		// We use a separate select with a default so this never blocks.
+		select {
+		case <-out:
+		default:
+		}
+		select {
+		case out <- snap:
+		default:
+			// If we still can't send, just drop — next tick will retry.
+			log.Println("cpuCollector: dropped snapshot, channel still full")
+		}
+	}
+}
+
+// clamp constrains v to the range [min, max].
+// CPU percentages should never leave [0, 100] but floating-point
+// arithmetic in gopsutil can occasionally produce values like 100.0001.
+func clamp(v, min, max float64) float64 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}

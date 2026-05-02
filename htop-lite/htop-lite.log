@@ -1,0 +1,261 @@
+2026/05/01 16:51:30 htop-lite starting...
+2026/05/01 16:51:30 renderer: initialised
+2026/05/01 16:51:30 renderer: started
+2026/05/01 16:51:30 networkCollector: started
+2026/05/01 16:51:30 processCollector: started
+2026/05/01 16:51:30 stateManager: started
+2026/05/01 16:51:30 inputHandler: started
+2026/05/01 16:51:30 cpuCollector: started
+2026/05/01 16:51:30 memCollector: started
+2026/05/01 16:51:43 inputHandler: quit key pressed
+2026/05/01 16:51:43 inputHandler: context cancelled, exiting
+2026/05/01 16:51:43 inputHandler: terminal restored
+2026/05/01 16:51:43 inputHandler stopped
+2026/05/01 16:51:43 memCollector: context cancelled, exiting
+2026/05/01 16:51:43 context cancelled — waiting for goroutines to finish...
+2026/05/01 16:51:43 processCollector: context cancelled, exiting
+2026/05/01 16:51:43 renderer: context cancelled, exiting
+2026/05/01 16:51:43 renderer stopped
+2026/05/01 16:51:43 renderer: cleaned up
+2026/05/01 16:51:43 stateManager: quit event received
+2026/05/01 16:51:43 stateManager: context cancelled, exiting
+2026/05/01 16:51:43 stateManager stopped
+2026/05/01 16:51:43 networkCollector: context cancelled, exiting
+2026/05/01 16:51:43 networkCollector stopped
+2026/05/01 16:51:43 memCollector stopped
+2026/05/01 16:51:43 cpuCollector: context cancelled, exiting
+2026/05/01 16:51:43 cpuCollector stopped
+2026/05/01 16:51:43 processCollector stopped
+2026/05/01 16:51:43 htop-lite exited cleanly
+2026/05/01 16:51:53 htop-lite starting...
+2026/05/01 16:51:53 networkCollector: started
+2026/05/01 16:51:53 cpuCollector: started
+2026/05/01 16:51:53 stateManager: started
+2026/05/01 16:51:53 processCollector: started
+2026/05/01 16:51:53 memCollector: started
+2026/05/01 16:51:53 inputHandler: started
+2026/05/01 16:51:53 renderer: initialised
+2026/05/01 16:51:53 renderer: started
+2026/05/01 16:52:11 inputHandler: quit key pressed
+2026/05/01 16:52:11 inputHandler: context cancelled, exiting
+2026/05/01 16:52:11 inputHandler: terminal restored
+2026/05/01 16:52:11 inputHandler stopped
+2026/05/01 16:52:11 context cancelled — waiting for goroutines to finish...
+2026/05/01 16:52:11 stateManager: quit event received
+2026/05/01 16:52:11 networkCollector: context cancelled, exiting
+2026/05/01 16:52:11 processCollector: context cancelled, exiting
+2026/05/01 16:52:11 processCollector stopped
+2026/05/01 16:52:11 stateManager: context cancelled, exiting
+2026/05/01 16:52:11 stateManager stopped
+2026/05/01 16:52:11 cpuCollector: context cancelled, exiting
+2026/05/01 16:52:11 cpuCollector stopped
+2026/05/01 16:52:11 memCollector: context cancelled, exiting
+2026/05/01 16:52:11 memCollector stopped
+2026/05/01 16:52:11 networkCollector stopped
+2026/05/01 16:52:11 renderer: context cancelled, exiting
+2026/05/01 16:52:11 renderer stopped
+2026/05/01 16:52:11 renderer: cleaned up
+2026/05/01 16:52:11 htop-lite exited cleanly
+2026/05/01 17:00:31 htop-lite starting...
+2026/05/01 17:00:31 renderer: initialised
+2026/05/01 17:00:31 renderer: started
+2026/05/01 17:00:31 processCollector: started
+2026/05/01 17:00:31 memCollector: started
+2026/05/01 17:00:31 cpuCollector: started
+2026/05/01 17:00:31 stateManager: started
+2026/05/01 17:00:31 inputHandler: started
+2026/05/01 17:00:31 networkCollector: started
+2026/05/01 17:01:29 inputHandler: quit key pressed
+2026/05/01 17:01:29 inputHandler: context cancelled, exiting
+2026/05/01 17:01:29 inputHandler: terminal restored
+2026/05/01 17:01:29 inputHandler stopped
+2026/05/01 17:01:29 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:01:29 cpuCollector: context cancelled, exiting
+2026/05/01 17:01:29 cpuCollector stopped
+2026/05/01 17:01:29 renderer: context cancelled, exiting
+2026/05/01 17:01:29 renderer stopped
+2026/05/01 17:01:29 renderer: cleaned up
+2026/05/01 17:01:29 memCollector: context cancelled, exiting
+2026/05/01 17:01:29 memCollector stopped
+2026/05/01 17:01:29 networkCollector: context cancelled, exiting
+2026/05/01 17:01:29 networkCollector stopped
+2026/05/01 17:01:29 stateManager: quit event received
+2026/05/01 17:01:29 stateManager: context cancelled, exiting
+2026/05/01 17:01:29 stateManager stopped
+2026/05/01 17:01:29 processCollector: context cancelled, exiting
+2026/05/01 17:01:29 processCollector stopped
+2026/05/01 17:01:29 htop-lite exited cleanly
+2026/05/01 17:17:24 htop-lite starting...
+2026/05/01 17:17:24 renderer: initialised
+2026/05/01 17:17:24 renderer: started
+2026/05/01 17:17:24 cpuCollector: started
+2026/05/01 17:17:24 networkCollector: started
+2026/05/01 17:17:24 inputHandler: started
+2026/05/01 17:17:24 stateManager: started
+2026/05/01 17:17:24 processCollector: started
+2026/05/01 17:17:24 memCollector: started
+2026/05/01 17:17:46 inputHandler: quit key pressed
+2026/05/01 17:17:46 inputHandler: context cancelled, exiting
+2026/05/01 17:17:46 inputHandler: terminal restored
+2026/05/01 17:17:46 inputHandler stopped
+2026/05/01 17:17:46 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:17:46 processCollector: context cancelled, exiting
+2026/05/01 17:17:46 networkCollector: context cancelled, exiting
+2026/05/01 17:17:46 networkCollector stopped
+2026/05/01 17:17:46 processCollector stopped
+2026/05/01 17:17:46 renderer: context cancelled, exiting
+2026/05/01 17:17:46 renderer stopped
+2026/05/01 17:17:46 renderer: cleaned up
+2026/05/01 17:17:46 stateManager: quit event received
+2026/05/01 17:17:46 stateManager: context cancelled, exiting
+2026/05/01 17:17:46 stateManager stopped
+2026/05/01 17:17:46 memCollector: context cancelled, exiting
+2026/05/01 17:17:46 memCollector stopped
+2026/05/01 17:17:46 cpuCollector: context cancelled, exiting
+2026/05/01 17:17:46 cpuCollector stopped
+2026/05/01 17:17:46 htop-lite exited cleanly
+2026/05/01 17:22:07 htop-lite starting...
+2026/05/01 17:22:07 renderer: initialised
+2026/05/01 17:22:07 renderer: started
+2026/05/01 17:22:07 processCollector: started
+2026/05/01 17:22:07 memCollector: started
+2026/05/01 17:22:07 cpuCollector: started
+2026/05/01 17:22:07 stateManager: started
+2026/05/01 17:22:07 networkCollector: started
+2026/05/01 17:22:07 inputHandler: started
+2026/05/01 17:22:22 inputHandler: quit key pressed
+2026/05/01 17:22:22 inputHandler: context cancelled, exiting
+2026/05/01 17:22:22 cpuCollector: context cancelled, exiting
+2026/05/01 17:22:22 memCollector: context cancelled, exiting
+2026/05/01 17:22:22 networkCollector: context cancelled, exiting
+2026/05/01 17:22:22 networkCollector stopped
+2026/05/01 17:22:22 inputHandler: terminal restored
+2026/05/01 17:22:22 inputHandler stopped
+2026/05/01 17:22:22 cpuCollector stopped
+2026/05/01 17:22:22 stateManager: quit event received
+2026/05/01 17:22:22 stateManager: context cancelled, exiting
+2026/05/01 17:22:22 stateManager stopped
+2026/05/01 17:22:22 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:22:22 renderer: context cancelled, exiting
+2026/05/01 17:22:22 renderer stopped
+2026/05/01 17:22:22 renderer: cleaned up
+2026/05/01 17:22:22 memCollector stopped
+2026/05/01 17:22:22 processCollector: context cancelled, exiting
+2026/05/01 17:22:22 processCollector stopped
+2026/05/01 17:22:22 htop-lite exited cleanly
+2026/05/01 17:26:56 htop-lite starting...
+2026/05/01 17:26:56 renderer: initialised
+2026/05/01 17:26:56 renderer: started
+2026/05/01 17:26:56 cpuCollector: started
+2026/05/01 17:26:56 memCollector: started
+2026/05/01 17:26:56 networkCollector: started
+2026/05/01 17:26:56 stateManager: started
+2026/05/01 17:26:56 inputHandler: started
+2026/05/01 17:26:56 processCollector: started
+2026/05/01 17:27:47 inputHandler: quit key pressed
+2026/05/01 17:27:47 inputHandler: context cancelled, exiting
+2026/05/01 17:27:47 stateManager: quit event received
+2026/05/01 17:27:47 networkCollector: context cancelled, exiting
+2026/05/01 17:27:47 networkCollector stopped
+2026/05/01 17:27:47 renderer: context cancelled, exiting
+2026/05/01 17:27:47 renderer stopped
+2026/05/01 17:27:47 renderer: cleaned up
+2026/05/01 17:27:47 inputHandler: terminal restored
+2026/05/01 17:27:47 inputHandler stopped
+2026/05/01 17:27:47 memCollector: context cancelled, exiting
+2026/05/01 17:27:47 memCollector stopped
+2026/05/01 17:27:47 processCollector: context cancelled, exiting
+2026/05/01 17:27:47 processCollector stopped
+2026/05/01 17:27:47 stateManager: context cancelled, exiting
+2026/05/01 17:27:47 stateManager stopped
+2026/05/01 17:27:47 cpuCollector: context cancelled, exiting
+2026/05/01 17:27:47 cpuCollector stopped
+2026/05/01 17:27:47 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:27:47 htop-lite exited cleanly
+2026/05/01 17:28:13 htop-lite starting...
+2026/05/01 17:28:13 renderer: initialised
+2026/05/01 17:28:13 renderer: started
+2026/05/01 17:28:13 inputHandler: started
+2026/05/01 17:28:13 stateManager: started
+2026/05/01 17:28:13 processCollector: started
+2026/05/01 17:28:13 cpuCollector: started
+2026/05/01 17:28:13 networkCollector: started
+2026/05/01 17:28:13 memCollector: started
+2026/05/01 17:29:40 inputHandler: quit key pressed
+2026/05/01 17:29:40 inputHandler: context cancelled, exiting
+2026/05/01 17:29:40 inputHandler: terminal restored
+2026/05/01 17:29:40 inputHandler stopped
+2026/05/01 17:29:40 renderer: context cancelled, exiting
+2026/05/01 17:29:40 networkCollector: context cancelled, exiting
+2026/05/01 17:29:40 networkCollector stopped
+2026/05/01 17:29:40 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:29:40 memCollector: context cancelled, exiting
+2026/05/01 17:29:40 memCollector stopped
+2026/05/01 17:29:40 renderer stopped
+2026/05/01 17:29:40 renderer: cleaned up
+2026/05/01 17:29:40 stateManager: quit event received
+2026/05/01 17:29:40 stateManager: context cancelled, exiting
+2026/05/01 17:29:40 stateManager stopped
+2026/05/01 17:29:40 cpuCollector: context cancelled, exiting
+2026/05/01 17:29:40 cpuCollector stopped
+2026/05/01 17:29:41 processCollector: context cancelled, exiting
+2026/05/01 17:29:41 processCollector stopped
+2026/05/01 17:29:41 htop-lite exited cleanly
+2026/05/01 17:30:38 htop-lite starting...
+2026/05/01 17:30:38 renderer: initialised
+2026/05/01 17:30:38 renderer: started
+2026/05/01 17:30:38 cpuCollector: started
+2026/05/01 17:30:38 stateManager: started
+2026/05/01 17:30:38 inputHandler: started
+2026/05/01 17:30:38 networkCollector: started
+2026/05/01 17:30:38 memCollector: started
+2026/05/01 17:30:38 processCollector: started
+2026/05/01 17:33:02 inputHandler: quit key pressed
+2026/05/01 17:33:02 inputHandler: context cancelled, exiting
+2026/05/01 17:33:02 inputHandler: terminal restored
+2026/05/01 17:33:02 inputHandler stopped
+2026/05/01 17:33:02 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:33:02 stateManager: quit event received
+2026/05/01 17:33:02 networkCollector: context cancelled, exiting
+2026/05/01 17:33:02 networkCollector stopped
+2026/05/01 17:33:02 memCollector: context cancelled, exiting
+2026/05/01 17:33:02 memCollector stopped
+2026/05/01 17:33:02 processCollector: context cancelled, exiting
+2026/05/01 17:33:02 processCollector stopped
+2026/05/01 17:33:02 stateManager: context cancelled, exiting
+2026/05/01 17:33:02 stateManager stopped
+2026/05/01 17:33:02 renderer: context cancelled, exiting
+2026/05/01 17:33:02 renderer stopped
+2026/05/01 17:33:02 renderer: cleaned up
+2026/05/01 17:33:02 cpuCollector: context cancelled, exiting
+2026/05/01 17:33:02 cpuCollector stopped
+2026/05/01 17:33:02 htop-lite exited cleanly
+2026/05/01 17:36:45 htop-lite starting...
+2026/05/01 17:36:45 cpuCollector: started
+2026/05/01 17:36:45 renderer: initialised
+2026/05/01 17:36:45 renderer: started
+2026/05/01 17:36:45 memCollector: started
+2026/05/01 17:36:45 networkCollector: started
+2026/05/01 17:36:45 stateManager: started
+2026/05/01 17:36:45 inputHandler: started
+2026/05/01 17:36:45 processCollector: started
+2026/05/01 17:36:49 inputHandler: quit key pressed
+2026/05/01 17:36:49 inputHandler: context cancelled, exiting
+2026/05/01 17:36:49 inputHandler: terminal restored
+2026/05/01 17:36:49 inputHandler stopped
+2026/05/01 17:36:49 context cancelled — waiting for goroutines to finish...
+2026/05/01 17:36:49 stateManager: quit event received
+2026/05/01 17:36:49 stateManager: context cancelled, exiting
+2026/05/01 17:36:49 stateManager stopped
+2026/05/01 17:36:49 processCollector: context cancelled, exiting
+2026/05/01 17:36:49 processCollector stopped
+2026/05/01 17:36:49 networkCollector: context cancelled, exiting
+2026/05/01 17:36:49 networkCollector stopped
+2026/05/01 17:36:49 memCollector: context cancelled, exiting
+2026/05/01 17:36:49 memCollector stopped
+2026/05/01 17:36:49 renderer: context cancelled, exiting
+2026/05/01 17:36:49 renderer stopped
+2026/05/01 17:36:49 renderer: cleaned up
+2026/05/01 17:36:49 cpuCollector: context cancelled, exiting
+2026/05/01 17:36:49 cpuCollector stopped
+2026/05/01 17:36:49 htop-lite exited cleanly
