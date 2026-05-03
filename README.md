@@ -34,9 +34,19 @@ Language: Go
 
 ---
 
+## Download Dependencies
+
+Before running the program for the first time, download and clean up the Go module dependencies:
+
+``bash
+go mod tidy
+
+---
+
 ## How to Run
 
 From the main project folder, run:
 
-```bash
+``bash
 go run .
+
