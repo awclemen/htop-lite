@@ -1,6 +1,17 @@
 // Package ui provides the terminal input handler and renderer for htop-lite.
-// The input handler runs in its own goroutine, reads raw keypresses from
-// stdin, and translates them into InputEvents that the state manager acts on.
+//
+// This file specifically contains the InputHandler. The InputHandler is
+// responsible for reading keyboard input from the terminal and turning that
+// input into events that the state manager can understand.
+//
+// In simple terms:
+//   - The user presses a key.
+//   - input.go reads that key.
+//   - input.go converts the key into an InputEvent.
+//   - manager.go receives the event and updates the program state.
+//
+// The input handler runs in its own goroutine so the program can keep
+// collecting system data and drawing the UI while also listening for keys.
 package ui
 
 import (
@@ -12,68 +23,165 @@ import (
 	"htop-lite/events"
 )
 
-// Re-export event constants so callers that already import ui don't need
-// a second import just for the constant names.
+// Re-export event constants so callers that already import ui do not need
+// to import the events package separately.
+//
+// These constants are aliases for the matching constants in events.go.
+// They are not new event types; they simply point to the same values.
 const (
-	EventScrollUp   = events.EventScrollUp
+	// EventScrollUp means the user wants to move the selected process upward.
+	EventScrollUp = events.EventScrollUp
+
+	// EventScrollDown means the user wants to move the selected process downward.
 	EventScrollDown = events.EventScrollDown
-	EventCycleSort  = events.EventCycleSort
-	EventFilter     = events.EventFilter
-	EventKill       = events.EventKill
-	EventQuit       = events.EventQuit
+
+	// EventCycleSort means the user wants to switch to the next sort mode.
+	EventCycleSort = events.EventCycleSort
+
+	// EventFilter means the user is typing or clearing a process-name filter.
+	EventFilter = events.EventFilter
+
+	// EventKill means the user wants to kill the currently selected process.
+	EventKill = events.EventKill
+
+	// EventQuit means the user wants to exit the program.
+	EventQuit = events.EventQuit
 )
 
-// InputHandler reads raw keypresses from stdin and emits InputEvents.
-// It owns the terminal's raw mode for the duration of its lifetime.
+// InputHandler reads raw keypresses from stdin and turns them into InputEvents.
+//
+// It owns terminal raw mode while it is running. Raw mode lets the program read
+// single keypresses immediately instead of waiting for the user to press Enter.
+//
+// Fields:
+//   - out sends InputEvents to the state manager.
+//   - cancel shuts down the whole program when the user quits.
+//   - filterMode tracks whether the user is typing a filter query.
+//   - filterBuf stores the current filter text.
+//   - visibleRows stores how many process rows are visible on screen.
 type InputHandler struct {
-	out        chan<- events.InputEvent
-	cancel     context.CancelFunc
-	filterMode bool   // true while the user is typing a filter query
-	filterBuf  string // accumulates keystrokes in filter mode
+	// out is the channel where keyboard events are sent.
+	// The state manager receives from this channel.
+	out chan<- events.InputEvent
 
-	// visibleRows is updated by the renderer via SetVisibleRows so that
-	// scroll-down events can carry the correct row count as payload.
+	// cancel is the shared context cancellation function.
+	// Calling this tells the rest of the program to shut down.
+	cancel context.CancelFunc
+
+	// filterMode is true when the user has pressed "/" and is typing a filter.
+	filterMode bool
+
+	// filterBuf stores the text typed while in filter mode.
+	filterBuf string
+
+	// visibleRows stores how many process rows are currently visible.
+	//
+	// The renderer can update this value so scroll-down events know how far
+	// the visible process window extends.
 	visibleRows int
 }
 
-// NewInputHandler constructs an InputHandler that sends events on out.
-// cancel is called when the user presses q or Ctrl+C, triggering a
-// clean shutdown of the entire program.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   NewInputHandler
+//
+// Purpose:
+//   Creates and returns a new InputHandler. The handler sends keyboard events
+//   through the provided output channel and uses the provided cancel function
+//   to shut down the program when the user quits.
+//
+// Pre-conditions:
+//   - out must be a valid InputEvent channel.
+//   - cancel must be a valid context cancellation function.
+//
+// Post-conditions:
+//   - Returns a pointer to a new InputHandler.
+//   - The handler starts outside of filter mode.
+//   - visibleRows is initialized to a safe default value.
+//
+// Parameters and information direction:
+//   - out: output channel; sends InputEvent values to the state manager.
+//   - cancel: input function; called when the user requests shutdown.
+//   - returns: output; pointer to a new InputHandler.
+////////////////////////////////////////////////////////////////////////////////
 func NewInputHandler(out chan<- events.InputEvent, cancel context.CancelFunc) *InputHandler {
 	return &InputHandler{
 		out:         out,
 		cancel:      cancel,
-		visibleRows: 20, // safe default before the renderer reports actual height
+		visibleRows: 20, // safe default before renderer reports actual height
 	}
 }
 
-// SetVisibleRows lets the renderer inform the input handler how many
-// process rows are currently visible. This is used as the scroll-down
-// payload so the state manager can advance the scroll window correctly.
-// Safe to call from the renderer goroutine — visibleRows is written once
-// per frame and read once per keypress, and both are infrequent enough
-// that a torn read would just cause a one-frame scroll glitch.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   SetVisibleRows
+//
+// Purpose:
+//   Updates the number of process rows currently visible in the terminal UI.
+//   The renderer can call this after drawing so the input handler knows when a
+//   downward scroll should move the scroll window.
+//
+// Pre-conditions:
+//   - n should be greater than or equal to 1 for normal scrolling behavior.
+//   - The renderer should call this with the current visible row count.
+//
+// Post-conditions:
+//   - h.visibleRows is updated to n.
+//
+// Parameters and information direction:
+//   - n: input; the number of process rows visible in the UI.
+////////////////////////////////////////////////////////////////////////////////
 func (h *InputHandler) SetVisibleRows(n int) {
 	h.visibleRows = n
 }
 
-// Run is the input handler's main loop. It puts the terminal into raw
-// mode, then reads one byte at a time, translating escape sequences and
-// printable characters into InputEvents.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   Run
 //
-// It exits when ctx is cancelled (e.g. after the user presses q).
+// Purpose:
+//   Runs the input handler's main loop. This method puts the terminal into raw
+//   mode, reads keyboard input one keypress at a time, and passes those bytes to
+//   handleBytes so they can be converted into InputEvents.
+//
+// Pre-conditions:
+//   - ctx must be a valid context.
+//   - h must be a properly initialized InputHandler.
+//   - The program should be running in a real terminal.
+//   - stdin must support terminal raw mode.
+//
+// Post-conditions:
+//   - The terminal is placed into raw mode while this method runs.
+//   - Keypresses are read from stdin and processed.
+//   - The terminal is restored before the method exits.
+//   - The method exits when ctx is cancelled or when reading from stdin fails.
+//
+// Parameters and information direction:
+//   - ctx: input; controls when the input handler should stop.
+////////////////////////////////////////////////////////////////////////////////
 func (h *InputHandler) Run(ctx context.Context) {
 	log.Println("inputHandler: started")
 
-	// Switch stdin to raw mode so we receive individual keypresses
-	// immediately, without waiting for the user to press Enter.
-	// term.MakeRaw returns the previous terminal state so we can restore
-	// it when we exit — critical for leaving the user's shell intact.
+	// Get the file descriptor for standard input.
+	// The terminal package needs this number to switch stdin into raw mode.
 	fd := int(os.Stdin.Fd())
+
+	// Put the terminal into raw mode.
+	//
+	// Normal terminal mode waits for Enter before sending input to the program.
+	// Raw mode sends each keypress immediately, which is needed for an htop-like
+	// interface.
+	//
+	// term.MakeRaw returns the old terminal state so we can restore it later.
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
 		log.Fatalf("inputHandler: failed to set raw mode: %v", err)
 	}
+
+	// Always restore the terminal when Run exits.
+	//
+	// This is very important. If raw mode is not restored, the user's terminal
+	// can behave strangely after the program closes.
 	defer func() {
 		if err := term.Restore(fd, oldState); err != nil {
 			log.Printf("inputHandler: failed to restore terminal: %v", err)
@@ -81,10 +189,15 @@ func (h *InputHandler) Run(ctx context.Context) {
 		log.Println("inputHandler: terminal restored")
 	}()
 
-	buf := make([]byte, 4) // large enough for 3-byte escape sequences
+	// This buffer is large enough for normal single-byte keys and common
+	// three-byte escape sequences like arrow keys.
+	buf := make([]byte, 4)
 
 	for {
-		// Check for cancellation before each blocking read.
+		// Check whether the program has been asked to shut down.
+		//
+		// This lets the input handler exit when the user presses q, Ctrl+C,
+		// or when another part of the program cancels the context.
 		select {
 		case <-ctx.Done():
 			log.Println("inputHandler: context cancelled, exiting")
@@ -92,105 +205,254 @@ func (h *InputHandler) Run(ctx context.Context) {
 		default:
 		}
 
+		// Read bytes from the terminal.
+		//
+		// In raw mode, this usually returns after a single keypress instead of
+		// waiting for Enter.
 		n, err := os.Stdin.Read(buf)
 		if err != nil {
 			log.Printf("inputHandler: read error: %v", err)
 			return
 		}
+
+		// If nothing was read, loop around and try again.
 		if n == 0 {
 			continue
 		}
 
+		// Process only the bytes that were actually read.
 		h.handleBytes(buf[:n])
 	}
 }
 
-// handleBytes interprets one keypress (which may be 1–3 bytes for escape
-// sequences) and either accumulates a filter query or emits an InputEvent.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   handleBytes
+//
+// Purpose:
+//   Interprets one keypress and converts it into an InputEvent. This method
+//   handles two modes: normal mode and filter mode.
+//
+//   Normal mode:
+//     - q quits.
+//     - arrows or j/k scroll.
+//     - s cycles sorting.
+//     - x kills the selected process.
+//     - / enters filter mode.
+//
+//   Filter mode:
+//     - printable characters are added to the filter query.
+//     - backspace removes one character.
+//     - Enter confirms the current filter.
+//     - Escape clears/cancels the filter.
+//
+// Pre-conditions:
+//   - b should contain bytes read from stdin.
+//   - h must have a valid output channel.
+//   - h.filterMode tells this method which input mode is active.
+//
+// Post-conditions:
+//   - May send an InputEvent to the state manager.
+//   - May update h.filterMode.
+//   - May update h.filterBuf.
+//   - May call h.cancel if the user requests quit.
+//
+// Parameters and information direction:
+//   - b: input; bytes representing the keypress read from the terminal.
+////////////////////////////////////////////////////////////////////////////////
 func (h *InputHandler) handleBytes(b []byte) {
-	// ------------------------------------------------------------------
-	// Filter mode — every printable character appends to the query.
-	// Escape or Enter exits filter mode; Backspace removes last char.
-	// ------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Filter mode
+	// -------------------------------------------------------------------------
+	// Filter mode is active after the user presses "/".
+	//
+	// In this mode, normal letters/numbers/symbols are treated as search text
+	// instead of commands.
 	if h.filterMode {
 		switch {
-		case len(b) == 1 && b[0] == 27: // Escape — cancel filter
+		case len(b) == 1 && b[0] == 27:
+			// Escape key.
+			//
+			// Cancel filter mode and clear the current filter.
 			h.filterMode = false
 			h.filterBuf = ""
 			h.send(events.InputEvent{Type: EventFilter, Payload: ""})
 
-		case len(b) == 1 && (b[0] == 13 || b[0] == 10): // Enter — confirm filter
+		case len(b) == 1 && (b[0] == 13 || b[0] == 10):
+			// Enter key.
+			//
+			// Confirm the current filter and leave filter mode.
+			// The filter text stays active because we do not clear filterBuf.
 			h.filterMode = false
-			// Keep the filter query active; don't clear filterBuf.
-			// The user can press / again to refine it.
 
-		case len(b) == 1 && (b[0] == 127 || b[0] == 8): // Backspace / DEL
+		case len(b) == 1 && (b[0] == 127 || b[0] == 8):
+			// Backspace or Delete.
+			//
+			// Remove the last character from the filter buffer, then send the
+			// updated query to the state manager.
 			if len(h.filterBuf) > 0 {
 				h.filterBuf = h.filterBuf[:len(h.filterBuf)-1]
 			}
 			h.send(events.InputEvent{Type: EventFilter, Payload: h.filterBuf})
 
 		case len(b) == 1 && isPrintable(b[0]):
+			// Normal printable character.
+			//
+			// Add it to the filter query and send the updated query.
 			h.filterBuf += string(b[0])
 			h.send(events.InputEvent{Type: EventFilter, Payload: h.filterBuf})
 		}
+
+		// Do not continue into normal command handling while in filter mode.
 		return
 	}
 
-	// ------------------------------------------------------------------
-	// Normal mode — map keypresses to events.
-	// ------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Normal mode
+	// -------------------------------------------------------------------------
+	// Normal mode treats keypresses as commands.
 	switch {
-	// Quit: q or Ctrl+C (0x03) or Ctrl+Q (0x11)
 	case len(b) == 1 && (b[0] == 'q' || b[0] == 'Q' || b[0] == 3 || b[0] == 17):
+		// Quit command.
+		//
+		// Supported quit keys:
+		//   - q
+		//   - Q
+		//   - Ctrl+C, byte value 3
+		//   - Ctrl+Q, byte value 17
 		log.Println("inputHandler: quit key pressed")
 		h.send(events.InputEvent{Type: EventQuit})
 		h.cancel()
 
-	// Scroll up: ↑ arrow (ESC [ A) or k (vim-style)
 	case isEscSeq(b, 'A') || (len(b) == 1 && b[0] == 'k'):
+		// Scroll up.
+		//
+		// Up arrow is sent by the terminal as the escape sequence ESC [ A.
+		// The letter k is also supported as a vim-style movement key.
 		h.send(events.InputEvent{Type: EventScrollUp})
 
-	// Scroll down: ↓ arrow (ESC [ B) or j (vim-style)
 	case isEscSeq(b, 'B') || (len(b) == 1 && b[0] == 'j'):
+		// Scroll down.
+		//
+		// Down arrow is sent by the terminal as the escape sequence ESC [ B.
+		// The letter j is also supported as a vim-style movement key.
+		//
+		// The payload tells the state manager how many process rows are visible.
 		h.send(events.InputEvent{Type: EventScrollDown, Payload: h.visibleRows})
 
-	// Cycle sort: s
 	case len(b) == 1 && b[0] == 's':
+		// Cycle the process sort mode.
+		//
+		// The state manager decides the actual order of sort modes.
 		h.send(events.InputEvent{Type: EventCycleSort})
 
-	// Kill selected: x or F9 (ESC [ 2 0 ~, but support x for simplicity)
 	case len(b) == 1 && b[0] == 'x':
+		// Kill selected process.
+		//
+		// The input handler does not know which process is selected. It simply
+		// tells the state manager that the user requested a kill action.
 		h.send(events.InputEvent{Type: EventKill})
 
-	// Enter filter mode: /
 	case len(b) == 1 && b[0] == '/':
+		// Enter filter mode.
+		//
+		// Clear the old filter buffer and immediately send an empty filter event
+		// so the state manager and renderer know filtering has started/reset.
 		h.filterMode = true
 		h.filterBuf = ""
 		h.send(events.InputEvent{Type: EventFilter, Payload: ""})
 	}
 }
 
-// send attempts a non-blocking send on the output channel.
-// If the state manager's input channel is full (it's processing a previous
-// event), the new event is dropped. At 1-second tick rates this is
-// vanishingly rare and dropping a single scroll event is harmless.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   send
+//
+// Purpose:
+//   Attempts to send an InputEvent to the state manager without blocking the
+//   input handler. If the channel is full, the event is dropped and a message is
+//   written to the log file.
+//
+// Pre-conditions:
+//   - h.out must be a valid InputEvent channel.
+//   - event should contain a valid EventType.
+//   - Payload should match the expected type for that event.
+//
+// Post-conditions:
+//   - If the channel has room, the event is sent.
+//   - If the channel is full, the event is dropped.
+//   - The input handler does not block waiting for the state manager.
+//
+// Parameters and information direction:
+//   - event: input; the InputEvent to send to the state manager.
+////////////////////////////////////////////////////////////////////////////////
 func (h *InputHandler) send(event events.InputEvent) {
 	select {
 	case h.out <- event:
+		// Event delivered successfully.
 	default:
+		// The input channel is full.
+		//
+		// Dropping an occasional input event is safer than freezing keyboard
+		// input while waiting for the state manager.
 		log.Printf("inputHandler: dropped event %v, channel full", event.Type)
 	}
 }
 
-// isEscSeq returns true if b is the 3-byte ANSI escape sequence ESC [ suffix.
-// Arrow keys are encoded as: ESC (0x1B), [ (0x5B), then A/B/C/D.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   isEscSeq
+//
+// Purpose:
+//   Checks whether a byte slice matches a three-byte ANSI escape sequence.
+//   This is mainly used to recognize arrow keys.
+//
+// Pre-conditions:
+//   - b may contain any number of bytes.
+//   - suffix should be the final byte expected in the escape sequence.
+//
+// Post-conditions:
+//   - Returns true if b matches ESC [ suffix.
+//   - Returns false otherwise.
+//
+// Parameters and information direction:
+//   - b: input; bytes read from the terminal.
+//   - suffix: input; expected final byte of the escape sequence.
+//   - returns: output; true if the sequence matches.
+////////////////////////////////////////////////////////////////////////////////
 func isEscSeq(b []byte, suffix byte) bool {
+	// Arrow keys usually arrive as three bytes:
+	//   ESC = 0x1B
+	//   [   = 0x5B
+	//   A/B/C/D depending on the arrow key
+	//
+	// Up arrow    = ESC [ A
+	// Down arrow  = ESC [ B
+	// Right arrow = ESC [ C
+	// Left arrow  = ESC [ D
 	return len(b) == 3 && b[0] == 0x1B && b[1] == '[' && b[2] == suffix
 }
 
-// isPrintable returns true for standard printable ASCII characters (32–126).
-// This guards the filter buffer against control characters being typed in.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   isPrintable
+//
+// Purpose:
+//   Checks whether a byte is a standard printable ASCII character. This is used
+//   while typing a filter query so control characters do not get inserted into
+//   the filter string.
+//
+// Pre-conditions:
+//   - b may be any byte value.
+//
+// Post-conditions:
+//   - Returns true if b is between ASCII 32 and ASCII 126.
+//   - Returns false for control characters and non-standard bytes.
+//
+// Parameters and information direction:
+//   - b: input; byte to check.
+//   - returns: output; true if the byte is printable ASCII.
+////////////////////////////////////////////////////////////////////////////////
 func isPrintable(b byte) bool {
 	return b >= 32 && b <= 126
 }
