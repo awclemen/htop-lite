@@ -1,6 +1,15 @@
 // Package collector provides goroutine-based system metric samplers.
-// Each collector runs independently on a ticker, reads raw data from
-// the OS (via /proc or gopsutil), and sends typed snapshots on a channel.
+//
+// This file specifically contains the CPU collector. The CPU collector is
+// responsible for reading total CPU usage and per-core CPU usage while the
+// program is running.
+//
+// In simple terms:
+//   - cpu.go samples CPU usage.
+//   - cpu.go stores that information in a CPUSnapshot.
+//   - cpu.go sends the snapshot through a channel.
+//   - manager.go receives the snapshot and stores it in SystemState.
+//   - renderer.go displays the CPU bars.
 package collector
 
 import (
@@ -11,31 +20,47 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 )
 
-// RunCPU is the entry point for the CPU collector goroutine.
-// It samples CPU usage on every tick and sends a CPUSnapshot on out.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   RunCPU
 //
-// Blocking behaviour:
-//   - If the receiver (state manager) is not ready, the send is dropped
-//     because out is buffered with size 1. This means we always publish
-//     the *latest* reading rather than queuing up stale ones.
-//   - The goroutine exits cleanly when ctx is cancelled.
+// Purpose:
+//   Starts the CPU collector loop. This method samples CPU usage immediately
+//   once, then continues sampling once per interval. Each successful CPU reading
+//   is sent through the output channel as a CPUSnapshot.
 //
-// Usage:
+// Pre-conditions:
+//   - ctx must be a valid context.
+//   - out must be a valid CPUSnapshot channel.
+//   - interval should be greater than zero.
+//   - The gopsutil CPU package must be able to read CPU information from the
+//     operating system.
 //
-//	cpuCh := make(chan collector.CPUSnapshot, 1)
-//	go collector.RunCPU(ctx, cpuCh, time.Second)
-// RunCPU accepts a bidirectional chan so that sendOrDrop can drain stale
-// values from the buffer. The caller should declare the channel as
-// chan CPUSnapshot and pass it here; the state manager receives it via
-// its cpuCh parameter which is narrowed to <-chan CPUSnapshot.
+// Post-conditions:
+//   - Sends CPU snapshots through out until ctx is cancelled.
+//   - Logs collector startup, errors, and clean shutdown.
+//   - Stops its ticker before returning.
+//
+// Parameters and information direction:
+//   - ctx: input; controls when the collector should stop.
+//   - out: output; receives CPUSnapshot values.
+//   - interval: input; controls how often CPU data is sampled.
+////////////////////////////////////////////////////////////////////////////////
 func RunCPU(ctx context.Context, out chan CPUSnapshot, interval time.Duration) {
+	// Create a ticker that fires repeatedly at the requested interval.
+	// Each tick tells the collector it is time to collect a new CPU sample.
 	ticker := time.NewTicker(interval)
+
+	// Always stop the ticker when the collector exits.
+	// This prevents ticker resources from leaking.
 	defer ticker.Stop()
 
 	log.Println("cpuCollector: started")
 
-	// Collect once immediately so the UI has data on first render,
-	// rather than showing zeros for the first `interval` duration.
+	// Take one sample immediately.
+	//
+	// Without this, the UI would wait a full interval before showing CPU data.
+	// Sampling right away makes the program feel responsive when it first opens.
 	if snap, err := sample(); err != nil {
 		log.Printf("cpuCollector: initial sample error: %v", err)
 	} else {
@@ -45,65 +70,102 @@ func RunCPU(ctx context.Context, out chan CPUSnapshot, interval time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
+			// The shared context was cancelled, so the collector should stop.
 			log.Println("cpuCollector: context cancelled, exiting")
 			return
 
 		case <-ticker.C:
+			// Time for another CPU reading.
 			snap, err := sample()
 			if err != nil {
-				// Log the error but keep running — a single failed read
-				// shouldn't take down the whole program.
+				// One failed sample should not crash the whole program.
+				// Log the problem and try again on the next tick.
 				log.Printf("cpuCollector: sample error: %v", err)
 				continue
 			}
+
+			// Send the newest CPU snapshot to the state manager.
 			sendOrDrop(out, snap)
 		}
 	}
 }
 
-// sample reads the current CPU utilization from the OS and returns a
-// CPUSnapshot. It calls gopsutil twice internally — once for overall
-// usage and once for per-core breakdown.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   sample
 //
-// gopsutil computes usage as a delta between two reads separated by a
-// short internal interval (100ms). This means sample() blocks for
-// roughly 100ms on each call, which is fine since it runs in its own
-// goroutine.
+// Purpose:
+//   Reads the current CPU usage from the operating system and returns it as a
+//   CPUSnapshot. This includes both total CPU usage and per-core CPU usage.
+//
+// Pre-conditions:
+//   - The operating system must provide CPU usage information.
+//   - gopsutil must be able to read that information.
+//   - This method is expected to run inside the CPU collector goroutine.
+//
+// Post-conditions:
+//   - Returns a CPUSnapshot containing total usage, per-core usage, core count,
+//     and timestamp.
+//   - Returns an error if gopsutil fails to read CPU data.
+//   - Clamps usage percentages into reasonable ranges.
+//
+// Parameters and information direction:
+//   - No parameters.
+//   - returns: output; CPUSnapshot and possible error.
+////////////////////////////////////////////////////////////////////////////////
 func sample() (CPUSnapshot, error) {
+	// gopsutil calculates CPU usage by comparing CPU counters over a short time.
+	// This interval tells gopsutil how long to wait while measuring.
 	const measureInterval = 100 * time.Millisecond
 
-	// Overall utilization across all cores (returns a slice of length 1
-	// when percpu=false).
+	// Read overall CPU utilization across all cores.
+	//
+	// percpu=false means the result is one total usage value instead of one
+	// value per core.
 	totals, err := cpu.Percent(measureInterval, false)
 	if err != nil {
 		return CPUSnapshot{}, err
 	}
 
-	// Per-core utilization (returns a slice of length == CoreCount).
-	// We pass 0 as the interval here because the first call already
-	// waited; gopsutil will use cached counters from that read.
+	// Read per-core CPU utilization.
+	//
+	// percpu=true means the result contains one value per logical CPU core.
+	//
+	// Passing 0 as the interval lets gopsutil use recently collected/cached
+	// counter information instead of waiting another 100ms.
 	cores, err := cpu.Percent(0, true)
 	if err != nil {
 		return CPUSnapshot{}, err
 	}
 
-	coreCount, err := cpu.Counts(true) // true = logical cores
+	// Ask the operating system how many logical CPU cores exist.
+	//
+	// true means logical cores are counted, including hyperthreaded cores.
+	coreCount, err := cpu.Counts(true)
 	if err != nil {
-		// Non-fatal — we still have the usage data.
+		// This is not fatal because the usage values may still be valid.
+		// If core count cannot be read, fall back to the number of per-core
+		// usage values returned above.
 		log.Printf("cpuCollector: could not get core count: %v", err)
 		coreCount = len(cores)
 	}
 
+	// Extract the total usage value.
+	// gopsutil returns a slice even when percpu=false, so we check that the
+	// slice actually contains a value before using it.
 	var overall float64
 	if len(totals) > 0 {
 		overall = clamp(totals[0], 0, 100)
 	}
 
+	// Clamp each per-core usage value between 0 and 100.
+	// This protects the renderer from strange values returned by the OS.
 	clamped := make([]float64, len(cores))
 	for i, c := range cores {
 		clamped[i] = clamp(c, 0, 100)
 	}
 
+	// Return one complete CPU snapshot.
 	return CPUSnapshot{
 		UsagePercent: overall,
 		CoreUsage:    clamped,
@@ -112,44 +174,82 @@ func sample() (CPUSnapshot, error) {
 	}, nil
 }
 
-// sendOrDrop attempts a non-blocking send on out.
-// If the channel already has an unread value (the receiver is busy),
-// the old value is drained first and the new snapshot takes its place.
-// This ensures the state manager always sees the freshest data.
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   sendOrDrop
 //
-// out must be a bidirectional channel (chan CPUSnapshot) even though we
-// only ever send on it — the drain step needs receive permission. The
-// call sites in RunCPU pass the channel before it is narrowed to chan<-,
-// so no API change is needed there.
+// Purpose:
+//   Sends the newest CPU snapshot to the state manager without blocking the CPU
+//   collector. If the channel already contains an old unread snapshot, this
+//   method removes the stale value and replaces it with the newest snapshot.
+//
+// Pre-conditions:
+//   - out must be a valid CPUSnapshot channel.
+//   - snap should contain a CPU snapshot to send.
+//   - out is expected to be buffered, usually with capacity 1.
+//
+// Post-conditions:
+//   - If possible, snap is sent to out.
+//   - If an older value is waiting in the channel, it may be removed.
+//   - The collector does not block waiting for the state manager.
+//   - If the channel is still full after draining, the snapshot is dropped and
+//     the problem is logged.
+//
+// Parameters and information direction:
+//   - out: output; channel receiving CPU snapshots.
+//   - snap: input; newest CPU snapshot.
+////////////////////////////////////////////////////////////////////////////////
 func sendOrDrop(out chan CPUSnapshot, snap CPUSnapshot) {
 	select {
 	case out <- snap:
 		// Sent successfully.
 	default:
-		// Channel full — drain the stale value, then send the new one.
-		// We use a separate select with a default so this never blocks.
+		// The channel already has an unread snapshot.
+		// Remove the stale value first.
 		select {
 		case <-out:
 		default:
 		}
+
+		// Try to send the newest snapshot after draining the old one.
 		select {
 		case out <- snap:
 		default:
-			// If we still can't send, just drop — next tick will retry.
+			// If the channel is still full, do not block the collector.
+			// Drop this snapshot and try again on the next tick.
 			log.Println("cpuCollector: dropped snapshot, channel still full")
 		}
 	}
 }
 
-// clamp constrains v to the range [min, max].
-// CPU percentages should never leave [0, 100] but floating-point
-// arithmetic in gopsutil can occasionally produce values like 100.0001.
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
+////////////////////////////////////////////////////////////////////////////////
+// Method name:
+//   clamp
+//
+// Purpose:
+//   Restricts a float64 value so it stays inside a given range. The CPU
+//   collector uses this to keep percentages inside expected bounds.
+//
+// Pre-conditions:
+//   - lo should be less than or equal to hi.
+//
+// Post-conditions:
+//   - Returns lo if v is below lo.
+//   - Returns hi if v is above hi.
+//   - Returns v if v is already inside the range.
+//
+// Parameters and information direction:
+//   - v: input; value to clamp.
+//   - lo: input; lower bound.
+//   - hi: input; upper bound.
+//   - returns: output; clamped value.
+////////////////////////////////////////////////////////////////////////////////
+func clamp(v, lo, hi float64) float64 {
+	if v < lo {
+		return lo
 	}
-	if v > max {
-		return max
+	if v > hi {
+		return hi
 	}
 	return v
 }
