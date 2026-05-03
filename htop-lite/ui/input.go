@@ -1,3 +1,15 @@
+package ui
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
+//
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description:
 // Package ui provides the terminal input handler and renderer for htop-lite.
 //
 // This file specifically contains the InputHandler. The InputHandler is
@@ -12,7 +24,17 @@
 //
 // The input handler runs in its own goroutine so the program can keep
 // collecting system data and drawing the UI while also listening for keys.
-package ui
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - context: used to coordinate shutdown across goroutines.
+//   - log: used to write debug/status information to htop-lite.log.
+//   - os/signal: used to detect Ctrl+C and other interrupt signals.
+//   - golang.org/x/term - for interaction with the terminal
+//
+////////////////////////////////////////////////////////////////////////////////
 
 import (
 	"context"

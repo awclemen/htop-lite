@@ -1,8 +1,17 @@
-// Package collector provides goroutine-based system metric samplers.
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
 //
-// This file specifically contains the process collector. The process collector
-// is responsible for reading the operating system's current process table and
-// turning each readable process into a ProcessInfo value.
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description: Package collector provides goroutine-based system metric samplers.
+//              This file specifically contains the process collector. The process collector
+//              is responsible for reading the operating system's current process table and
+//              turning each readable process into a ProcessInfo value.
 //
 // In simple terms:
 //   - process.go asks the OS for the current list of processes.
@@ -11,6 +20,18 @@
 //   - process.go sends the full process list through a channel.
 //   - manager.go sorts/filters that list.
 //   - renderer.go displays the process table.
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - context: used to coordinate shutdown across goroutines.
+//   - log: used to write debug/status information to htop-lite.log.
+//   - time: used for the collector tick rate.
+//   - github.com/shirou/gopsutil/v3/process - package used for gathering
+//     and filtering process data.
+//
+////////////////////////////////////////////////////////////////////////////////
 package collector
 
 import (

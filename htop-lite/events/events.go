@@ -1,5 +1,16 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Package events
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
+//
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description: Package events defines the InputEvent type shared between the ui and
+//              state packages. It exists solely to break the import cycle that would
+//              arise if ui defined InputEvent and state imported ui, or vice versa.
 //
 // Purpose:
 //   The events package defines the shared input-event types used by htop-lite.
@@ -22,6 +33,8 @@
 // Language:
 //   Go
 //
+// External / Important Packages Used: None
+//
 // Deficiencies:
 //   - Payload uses the type any, so the receiver must know what kind of data
 //     to expect for each event.
@@ -29,10 +42,6 @@
 //   - This package only describes user-input events, not collector updates.
 ////////////////////////////////////////////////////////////////////////////////
 
-// Package events defines the InputEvent type shared between the ui and
-// state packages. It exists solely to break the import cycle that would
-// arise if ui defined InputEvent and state imported ui, or vice versa.
-//
 // Keeping shared message types in their own small package is idiomatic Go.
 // The same pattern appears in the standard library, where small shared
 // packages are sometimes used to keep larger packages independent.

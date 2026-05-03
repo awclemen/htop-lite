@@ -1,3 +1,15 @@
+package ui
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
+//
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description:
 // Package ui provides the terminal input handler and renderer for htop-lite.
 //
 // This file contains the Renderer. The Renderer is responsible for drawing the
@@ -12,7 +24,21 @@
 //
 // The renderer should be the only part of the program that writes directly to
 // stdout. This prevents multiple goroutines from printing over each other.
-package ui
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - context: used to coordinate shutdown across goroutines.
+//   - log: used to write debug/status information to htop-lite.log.
+//   - os: used to open the log file and interact with the operating system.
+//   - strings: string builder and most of the constants.
+//   - fmt: for formatting the data and display.
+//   - math: for max/min on clamping function.
+//   - time: used for the collector tick rate.
+//   - golang.org/x/term - for access to terminal
+//
+////////////////////////////////////////////////////////////////////////////////
 
 import (
 	"fmt"
@@ -20,7 +46,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
 	"context"
 	"log"
 

@@ -1,3 +1,14 @@
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
+//
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description:
 // Package collector defines the shared data types used by the collector,
 // state, and ui packages.
 //
@@ -17,6 +28,16 @@
 // These structs are intentionally simple. They do not contain complicated
 // methods or internal locks. This makes them safe and easy to copy through
 // channels between goroutines.
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - fmt - for formating data
+//   - os: used to open the log file and interact with the operating system.
+//   - time: used for the collector tick rate.
+//
+////////////////////////////////////////////////////////////////////////////////
 package collector
 
 import (

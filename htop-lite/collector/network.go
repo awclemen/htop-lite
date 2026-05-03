@@ -1,8 +1,17 @@
-// Package collector provides goroutine-based system metric samplers.
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
 //
-// This file specifically contains the network collector. The network collector
-// is responsible for reading network upload/download counters and converting
-// them into per-second rates.
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
+//
+// Description: Package collector provides goroutine-based system metric samplers.
+//              This file specifically contains the network collector. The network collector
+//              is responsible for reading network upload/download counters and converting
+//              them into per-second rates.
 //
 // In simple terms:
 //   - network.go reads total network bytes sent/received.
@@ -11,6 +20,18 @@
 //   - network.go stores that information in a NetworkSnapshot.
 //   - manager.go receives the snapshot and stores it in SystemState.
 //   - renderer.go displays the network upload/download rates.
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - context: used to coordinate shutdown across goroutines.
+//   - log: used to write debug/status information to htop-lite.log.
+//   - time: used for the collector tick rate.
+//   - github.com/shirou/gopsutil/v3/net - package used for collecting
+//     and filtering network data.
+//
+////////////////////////////////////////////////////////////////////////////////
 package collector
 
 import (

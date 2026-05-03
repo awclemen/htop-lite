@@ -1,15 +1,42 @@
-// Package collector provides goroutine-based system metric samplers.
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Project: Learn a New (to You!) Programming Language Part III
+// Author: Andy Clements (andywclements@arizona.edu)
+//         Cora Clements (coraclements@arizona.edu)
 //
-// This file specifically contains the CPU collector. The CPU collector is
-// responsible for reading total CPU usage and per-core CPU usage while the
-// program is running.
+// Course: CSc 372
+// Instructor: L. McCann
+// TAs: Muaz Ali, Daniel Reynaldo
+// Due Date: May 4th, 2026
 //
+// Description: Package collector provides goroutine-based system metric samplers.
+//              This file specifically contains the CPU collector. The CPU collector is
+//              responsible for reading total CPU usage and per-core CPU usage while the
+//              program is running.
 // In simple terms:
 //   - cpu.go samples CPU usage.
 //   - cpu.go stores that information in a CPUSnapshot.
 //   - cpu.go sends the snapshot through a channel.
 //   - manager.go receives the snapshot and stores it in SystemState.
 //   - renderer.go displays the CPU bars.
+//
+// Language:
+//   Go
+//
+// External / Important Packages Used:
+//   - context: used to coordinate shutdown across goroutines.
+//   - log: used to write debug/status information to htop-lite.log.
+//   - os: used to open the log file and interact with the operating system.
+//   - os/signal: used to detect Ctrl+C and other interrupt signals.
+//   - sync: used for WaitGroup so main waits for goroutines to finish.
+//   - syscall: used for SIGINT and SIGTERM signal constants.
+//   - time: used for the collector tick rate.
+//
+// Deficiencies:
+//   - Program is designed mainly for terminal environments.
+//   - Some process data may be unavailable depending on user permissions.
+//   - Killing processes may fail if the user does not have permission.
+//   - Terminal display may be limited on very small windows.
+////////////////////////////////////////////////////////////////////////////////
 package collector
 
 import (
